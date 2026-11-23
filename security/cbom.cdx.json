@@ -1,0 +1,551 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "serialNumber": "urn:uuid:aedd2761-89d1-45b1-b766-49930bcb2578",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-11-23T13:02:31Z",
+    "tools": {
+      "components": [
+        {
+          "type": "application",
+          "name": "tools/bom.js",
+          "version": "1.0.0",
+          "description": "Eigen generator in deze repository"
+        }
+      ]
+    },
+    "component": {
+      "type": "application",
+      "bom-ref": "registratie-app",
+      "name": "registratie-app",
+      "version": "1.0.0",
+      "description": "Mobiele registratie-app: QR-codes scannen, locatie invoeren, CSV maken en mailen.",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/ProAdmin007/Registratie-app"
+        },
+        {
+          "type": "website",
+          "url": "https://proadmin007.github.io/Registratie-app/"
+        }
+      ],
+      "properties": [
+        {
+          "name": "git:commit",
+          "value": "0a6e1e1cc2cb5a85c2e21051d9dd0f9d39f21a3e"
+        }
+      ]
+    },
+    "properties": [
+      {
+        "name": "registratie:app-runtime-crypto",
+        "value": "Geen. De app (index.html) gebruikt geen Web Crypto API, geen eigen versleuteling en geen sleutels. Gegevens staan onversleuteld in localStorage op het toestel; bescherming in rust komt van de apparaatversleuteling van Android."
+      },
+      {
+        "name": "registratie:non-cryptographic",
+        "value": "CRC-32 (zip/png in tools/build.js), Reed-Solomon (QR-foutcorrectie in jsQR) en Math.random (record-ID's) zijn niet-cryptografisch en worden niet voor beveiliging gebruikt."
+      },
+      {
+        "name": "registratie:tls-probe",
+        "value": "live gemeten"
+      }
+    ]
+  },
+  "components": [
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "crypto/algorithm/sha-256",
+      "name": "SHA-256",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "hash",
+          "parameterSetIdentifier": "256",
+          "executionEnvironment": "software-plain-ram",
+          "implementationPlatform": "generic",
+          "cryptoFunctions": [
+            "digest"
+          ],
+          "classicalSecurityLevel": 128,
+          "nistQuantumSecurityLevel": 2
+        },
+        "oid": "2.16.840.1.101.3.4.2.1"
+      }
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "crypto/algorithm/sha-512",
+      "name": "SHA-512",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "hash",
+          "parameterSetIdentifier": "512",
+          "executionEnvironment": "software-plain-ram",
+          "implementationPlatform": "generic",
+          "cryptoFunctions": [
+            "digest"
+          ],
+          "classicalSecurityLevel": 256,
+          "nistQuantumSecurityLevel": 5
+        },
+        "oid": "2.16.840.1.101.3.4.2.3"
+      },
+      "properties": [
+        {
+          "name": "registratie:usage",
+          "value": "npm-integriteit (package-lock.json, Subresource-Integrity-formaat) van ontwikkelpakketten"
+        }
+      ]
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "crypto/algorithm/sha-1",
+      "name": "SHA-1",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "hash",
+          "parameterSetIdentifier": "160",
+          "executionEnvironment": "software-plain-ram",
+          "implementationPlatform": "generic",
+          "cryptoFunctions": [
+            "digest"
+          ],
+          "classicalSecurityLevel": 0,
+          "nistQuantumSecurityLevel": 0
+        },
+        "oid": "1.3.14.3.2.26"
+      },
+      "properties": [
+        {
+          "name": "registratie:usage",
+          "value": "Git object-ID's (repository en gh-pages-deploy). Git gebruikt SHA-1 met collision-detectie; niet gebruikt voor beveiliging van gebruikersgegevens."
+        }
+      ]
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "crypto/algorithm/sha256withrsaencryption",
+      "name": "sha256WithRSAEncryption",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "signature",
+          "padding": "pkcs1v15",
+          "parameterSetIdentifier": "2048",
+          "executionEnvironment": "software-plain-ram",
+          "implementationPlatform": "generic",
+          "cryptoFunctions": [
+            "sign",
+            "verify"
+          ],
+          "classicalSecurityLevel": 112,
+          "nistQuantumSecurityLevel": 0
+        },
+        "oid": "1.2.840.113549.1.1.11"
+      }
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "crypto/algorithm/rsa-2048",
+      "name": "RSA-2048",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "pke",
+          "parameterSetIdentifier": "2048",
+          "executionEnvironment": "software-plain-ram",
+          "implementationPlatform": "generic",
+          "cryptoFunctions": [
+            "keygen"
+          ],
+          "classicalSecurityLevel": 112,
+          "nistQuantumSecurityLevel": 0
+        },
+        "oid": "1.2.840.113549.1.1.1"
+      }
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "crypto/algorithm/aes-128-gcm",
+      "name": "AES-128-GCM",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "ae",
+          "mode": "gcm",
+          "parameterSetIdentifier": "128",
+          "executionEnvironment": "software-plain-ram",
+          "implementationPlatform": "generic",
+          "cryptoFunctions": [
+            "encrypt",
+            "decrypt"
+          ],
+          "classicalSecurityLevel": 128,
+          "nistQuantumSecurityLevel": 1
+        },
+        "oid": "2.16.840.1.101.3.4.1.6"
+      }
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "crypto/algorithm/hkdf-sha-256",
+      "name": "HKDF-SHA-256",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "kdf",
+          "parameterSetIdentifier": "256",
+          "executionEnvironment": "software-plain-ram",
+          "implementationPlatform": "generic",
+          "cryptoFunctions": [
+            "keyderive"
+          ],
+          "classicalSecurityLevel": 128,
+          "nistQuantumSecurityLevel": 1
+        }
+      }
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "crypto/algorithm/x25519",
+      "name": "X25519",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "key-agree",
+          "curve": "Curve25519",
+          "parameterSetIdentifier": "255",
+          "executionEnvironment": "software-plain-ram",
+          "implementationPlatform": "generic",
+          "cryptoFunctions": [
+            "keygen",
+            "other"
+          ],
+          "classicalSecurityLevel": 128,
+          "nistQuantumSecurityLevel": 0
+        },
+        "oid": "1.3.101.110"
+      }
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "crypto/algorithm/ml-kem-768",
+      "name": "ML-KEM-768",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "kem",
+          "parameterSetIdentifier": "768",
+          "executionEnvironment": "software-plain-ram",
+          "implementationPlatform": "generic",
+          "cryptoFunctions": [
+            "keygen",
+            "encapsulate",
+            "decapsulate"
+          ],
+          "classicalSecurityLevel": 192,
+          "nistQuantumSecurityLevel": 3
+        },
+        "oid": "2.16.840.1.101.3.4.4.2"
+      },
+      "properties": [
+        {
+          "name": "registratie:standard",
+          "value": "NIST FIPS 203 (post-quantum)"
+        }
+      ]
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "crypto/algorithm/x25519mlkem768",
+      "name": "X25519MLKEM768",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "combiner",
+          "executionEnvironment": "software-plain-ram",
+          "implementationPlatform": "generic",
+          "cryptoFunctions": [
+            "keygen",
+            "encapsulate",
+            "decapsulate"
+          ],
+          "classicalSecurityLevel": 128,
+          "nistQuantumSecurityLevel": 3
+        }
+      },
+      "properties": [
+        {
+          "name": "registratie:note",
+          "value": "Hybride sleuteluitwisseling (klassiek X25519 + post-quantum ML-KEM-768): beschermt ook tegen \"harvest now, decrypt later\"."
+        }
+      ]
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "crypto/github-pages/certificate",
+      "name": "TLS-certificaat proadmin007.github.io",
+      "cryptoProperties": {
+        "assetType": "certificate",
+        "certificateProperties": {
+          "subjectName": "CN=*.github.io",
+          "issuerName": "C=US, O=Let's Encrypt, CN=YR1",
+          "notValidBefore": "2026-09-30T23:44:46Z",
+          "notValidAfter": "2026-12-29T23:44:45Z",
+          "signatureAlgorithmRef": "crypto/algorithm/sha256withrsaencryption",
+          "subjectPublicKeyRef": "crypto/github-pages/public-key",
+          "certificateFormat": "X.509",
+          "certificateExtension": "pem"
+        }
+      },
+      "properties": [
+        {
+          "name": "registratie:sha256-fingerprint",
+          "value": "F2:F9:A1:59:CE:50:A0:A1:68:B3:EA:EA:F2:FC:ED:5A:DD:D4:9B:A3:8E:2B:F6:32:48:F0:57:A1:39:FC:78:56"
+        },
+        {
+          "name": "registratie:managed-by",
+          "value": "GitHub (automatische vernieuwing)"
+        }
+      ]
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "crypto/github-pages/public-key",
+      "name": "TLS-certificaat proadmin007.github.io – publieke sleutel",
+      "cryptoProperties": {
+        "assetType": "related-crypto-material",
+        "relatedCryptoMaterialProperties": {
+          "type": "public-key",
+          "algorithmRef": "crypto/algorithm/rsa-2048",
+          "size": 2048,
+          "format": "SubjectPublicKeyInfo"
+        }
+      }
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "crypto/protocol/tls-github-pages",
+      "name": "TLS 1.3 (GitHub Pages)",
+      "cryptoProperties": {
+        "assetType": "protocol",
+        "protocolProperties": {
+          "type": "tls",
+          "version": "1.3",
+          "cipherSuites": [
+            {
+              "name": "TLS_AES_128_GCM_SHA256",
+              "algorithms": [
+                "crypto/algorithm/aes-128-gcm",
+                "crypto/algorithm/hkdf-sha-256"
+              ],
+              "identifiers": [
+                "0x13",
+                "0x01"
+              ]
+            }
+          ],
+          "cryptoRefArray": [
+            "crypto/algorithm/x25519mlkem768",
+            "crypto/algorithm/x25519",
+            "crypto/algorithm/ml-kem-768",
+            "crypto/github-pages/certificate"
+          ]
+        }
+      },
+      "properties": [
+        {
+          "name": "registratie:endpoint",
+          "value": "proadmin007.github.io:443"
+        },
+        {
+          "name": "registratie:key-exchange-group",
+          "value": "X25519MLKEM768"
+        },
+        {
+          "name": "registratie:observed-at",
+          "value": "2026-11-23T13:02:31Z"
+        },
+        {
+          "name": "registratie:observed-with",
+          "value": "Node.js v24.19.0 / OpenSSL 3.5.7"
+        },
+        {
+          "name": "registratie:note",
+          "value": "Waargenomen met de scan-client. Chrome op Android (versie 131+) onderhandelt doorgaans dezelfde hybride groep; oudere browsers vallen terug op X25519."
+        }
+      ]
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "crypto/dev-server/certificate",
+      "name": "Self-signed testcertificaat (Registratie test)",
+      "cryptoProperties": {
+        "assetType": "certificate",
+        "certificateProperties": {
+          "subjectName": "CN=Registratie test",
+          "issuerName": "CN=Registratie test",
+          "notValidBefore": "2026-11-23T12:56:03Z",
+          "notValidAfter": "2027-11-23T12:56:03Z",
+          "signatureAlgorithmRef": "crypto/algorithm/sha256withrsaencryption",
+          "subjectPublicKeyRef": "crypto/dev-server/public-key",
+          "certificateFormat": "X.509",
+          "certificateExtension": "pem"
+        }
+      },
+      "properties": [
+        {
+          "name": "registratie:scope",
+          "value": "Alleen lokaal (.cert/, staat in .gitignore, nooit gecommit of gepubliceerd)"
+        }
+      ]
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "crypto/dev-server/public-key",
+      "name": "Self-signed testcertificaat (Registratie test) – publieke sleutel",
+      "cryptoProperties": {
+        "assetType": "related-crypto-material",
+        "relatedCryptoMaterialProperties": {
+          "type": "public-key",
+          "algorithmRef": "crypto/algorithm/rsa-2048",
+          "size": 2048,
+          "format": "SubjectPublicKeyInfo"
+        }
+      }
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "crypto/dev-server/private-key",
+      "name": "Self-signed testcertificaat – privésleutel",
+      "cryptoProperties": {
+        "assetType": "related-crypto-material",
+        "relatedCryptoMaterialProperties": {
+          "type": "private-key",
+          "algorithmRef": "crypto/algorithm/rsa-2048",
+          "size": 2048,
+          "format": "PKCS#8 PEM",
+          "securedBy": {
+            "mechanism": "None (onversleuteld bestand, -nodes); alleen lokaal op de ontwikkel-pc"
+          }
+        }
+      }
+    },
+    {
+      "type": "application",
+      "bom-ref": "tools/serve.js",
+      "name": "Testserver (tools/serve.js)",
+      "scope": "excluded",
+      "description": "Alleen voor testen op het eigen netwerk; maakt een self-signed certificaat met openssl."
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "crypto/algorithm/x25519mlkem768",
+      "dependsOn": [
+        "crypto/algorithm/x25519mlkem768",
+        "crypto/algorithm/x25519",
+        "crypto/algorithm/ml-kem-768"
+      ]
+    },
+    {
+      "ref": "crypto/github-pages/certificate",
+      "dependsOn": [
+        "crypto/algorithm/sha256withrsaencryption",
+        "crypto/github-pages/public-key"
+      ]
+    },
+    {
+      "ref": "crypto/github-pages/public-key",
+      "dependsOn": [
+        "crypto/algorithm/rsa-2048"
+      ]
+    },
+    {
+      "ref": "crypto/protocol/tls-github-pages",
+      "dependsOn": [
+        "crypto/algorithm/aes-128-gcm",
+        "crypto/algorithm/hkdf-sha-256",
+        "crypto/algorithm/x25519mlkem768",
+        "crypto/algorithm/x25519",
+        "crypto/algorithm/ml-kem-768",
+        "crypto/github-pages/certificate"
+      ]
+    },
+    {
+      "ref": "crypto/dev-server/certificate",
+      "dependsOn": [
+        "crypto/algorithm/sha256withrsaencryption",
+        "crypto/dev-server/public-key"
+      ]
+    },
+    {
+      "ref": "crypto/dev-server/public-key",
+      "dependsOn": [
+        "crypto/algorithm/rsa-2048"
+      ]
+    },
+    {
+      "ref": "crypto/dev-server/private-key",
+      "dependsOn": [
+        "crypto/algorithm/rsa-2048"
+      ]
+    },
+    {
+      "ref": "tools/serve.js",
+      "dependsOn": [
+        "crypto/dev-server/certificate",
+        "crypto/dev-server/private-key"
+      ]
+    },
+    {
+      "ref": "registratie-app",
+      "dependsOn": [
+        "crypto/protocol/tls-github-pages",
+        "crypto/algorithm/sha-512",
+        "crypto/algorithm/sha-1",
+        "tools/serve.js"
+      ]
+    },
+    {
+      "ref": "crypto/algorithm/sha-256",
+      "dependsOn": []
+    },
+    {
+      "ref": "crypto/algorithm/sha-512",
+      "dependsOn": []
+    },
+    {
+      "ref": "crypto/algorithm/sha-1",
+      "dependsOn": []
+    },
+    {
+      "ref": "crypto/algorithm/sha256withrsaencryption",
+      "dependsOn": []
+    },
+    {
+      "ref": "crypto/algorithm/rsa-2048",
+      "dependsOn": []
+    },
+    {
+      "ref": "crypto/algorithm/aes-128-gcm",
+      "dependsOn": []
+    },
+    {
+      "ref": "crypto/algorithm/hkdf-sha-256",
+      "dependsOn": []
+    },
+    {
+      "ref": "crypto/algorithm/x25519",
+      "dependsOn": []
+    },
+    {
+      "ref": "crypto/algorithm/ml-kem-768",
+      "dependsOn": []
+    }
+  ]
+}

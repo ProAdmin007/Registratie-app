@@ -1,0 +1,59 @@
+REGISTRATIE
+===========
+
+Er hoeft niets geinstalleerd te worden. Alles zit in het bestand index.html
+(ook de QR-scanner). De app werkt zonder internet en stuurt geen gegevens weg.
+
+
+GEBRUIKEN OP ANDROID (zonder installatie)
+-----------------------------------------
+1. Download Registratie.zip op de telefoon.
+2. Open de app "Bestanden" (Files) > Downloads > tik op de zip > "Uitpakken".
+3. Open de uitgepakte map en tik op index.html.
+   Kies "Chrome" als je gevraagd wordt waarmee je wilt openen
+   (NIET "HTML-viewer": die voert de app niet uit).
+
+   Lukt dat niet? Typ dan in de adresbalk van Chrome:
+     file:///sdcard/Download/Registratie/index.html
+   (Chrome kan eenmalig om toestemming voor bestanden vragen.)
+
+4. Tip: in Chrome via het menu (drie puntjes) > "Toevoegen aan startscherm"
+   maak je een snelkoppeling, zodat je de app de volgende keer direct opent.
+
+
+WERKWIJZE
+---------
+  Scan QR-code  >  Locatie invullen  >  Toevoegen  >  Scan volgende ...
+  Klaar - CSV maken   : het CSV-bestand wordt in Downloads opgeslagen.
+  CSV via e-mail      : Android-deelmenu opent > kies Outlook of Gmail.
+  Nieuwe scanronde    : wist de lijst (na bevestiging).
+
+De lijst wordt op het toestel bewaard, ook als het scherm draait of de
+pagina per ongeluk herlaadt.
+
+
+LOKAAL GEOPEND = MOGELIJK "BEPERKTE MODUS"
+-------------------------------------------
+Een als bestand geopende webpagina krijgt van Chrome soms minder rechten
+dan een website. De app toont dan bovenaan een gele melding en schakelt
+automatisch over op een alternatief:
+
+  * Live camera niet toegestaan  -> "Scan QR-code" opent de camera-app;
+                                    maak een foto van de QR-code.
+  * Bestand delen niet toegestaan -> er opent een e-mail met onderwerp en
+                                    de gegevens in de tekst; voeg de CSV uit
+                                    Downloads zelf toe als bijlage (paperclip).
+
+Wil je altijd de volledige functionaliteit (live scannen, automatische
+bijlage, offline app op het startscherm)? Open dan in Chrome:
+
+    https://proadmin007.github.io/Registratie-app/
+
+en kies menu > "Toevoegen aan startscherm". Ook dan hoeft er niets
+geinstalleerd te worden en blijven alle gegevens op het toestel.
+
+
+CSV-FORMAAT
+-----------
+Kolommen: QR-code,Locatie,Datum,Tijd   (UTF-8 met BOM, komma-gescheiden)
+Bestandsnaam: JJJJ-MM-DD_UU-mm_registratie.csv

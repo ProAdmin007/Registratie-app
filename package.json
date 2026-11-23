@@ -1,0 +1,22 @@
+{
+  "name": "registratie-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Mobiele registratie-app: QR-codes scannen, locatie invoeren, CSV maken en mailen.",
+  "scripts": {
+    "build": "node tools/build.js",
+    "start": "node tools/build.js && node tools/serve.js",
+    "test": "node --test",
+    "deploy": "node tools/build.js && node tools/deploy.js",
+    "bom": "node tools/build.js && node tools/bom.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1",
+    "puppeteer-core": "^25.18.1",
+    "qrcode": "^1.5.4"
+  }
+}
