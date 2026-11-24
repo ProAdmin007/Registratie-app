@@ -1,10 +1,10 @@
 {
   "bomFormat": "CycloneDX",
   "specVersion": "1.6",
-  "serialNumber": "urn:uuid:de7be71e-1775-4cfe-85a4-c19df94c72ee",
+  "serialNumber": "urn:uuid:9163c74c-fbb8-41db-b8ba-b8dce0794700",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-11-23T13:02:31Z",
+    "timestamp": "2026-11-24T18:07:10Z",
     "tools": {
       "components": [
         {
@@ -34,7 +34,7 @@
       "properties": [
         {
           "name": "git:commit",
-          "value": "0a6e1e1cc2cb5a85c2e21051d9dd0f9d39f21a3e"
+          "value": "8ddc595cd40331bff34511b8ad55434516a2ba25"
         }
       ]
     },
@@ -100,7 +100,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "6c6ec0c3299c05968917631ea9c62c9d7055b8310510f457619da8f922448f63"
+          "content": "660db8820952319d50141b4d508a0a1b67071948e7205c73eac49e0064b6b081"
         }
       ]
     },
@@ -136,7 +136,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "87b9384ebda6f4203f972f0d23a6df911e3a2a31fa42245ce1a16d14bc8a7de6"
+          "content": "ea8a38d53b9acc18e4b7aa9d413966eb507d5d9752b417c72e35c38ef291d423"
         }
       ]
     },
@@ -172,7 +172,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "9eff59b41bda7dbc8056377426340d8147134ceeb2d4e6fabfe36e4064ad0e8b"
+          "content": "5dff60205d2d1218a0e57deebed18b2580a963654881c6c69a943a8c36fd192b"
         }
       ]
     },
@@ -184,7 +184,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "3b6c69a589670be22f9eae7b6d4d2e166019784a34589cb743ed43eb1b5befb6"
+          "content": "8f894a8922ef075039a29f103af345ea35069d16df6e53e37c4d1630cda1816c"
         }
       ]
     },

@@ -24,6 +24,7 @@ en moet de bijlage handmatig worden toegevoegd – zie `LEESMIJ.txt` in de zip.
 ## Privacy
 - Alle registraties blijven **alleen op het toestel** (localStorage). Er is geen server, database, account, tracking of analytics.
 - GitHub Pages levert alleen de app-bestanden; scangegevens worden nooit verstuurd.
+- GPS-coördinaten zijn locatiegegevens van de monteur (persoonsgegevens, AVG). Ze worden alleen bij een registratie vastgelegd, blijven op het toestel en komen alleen in de CSV die de gebruiker zelf verstuurt.
 - De CSV gaat via de eigen mail-app van de gebruiker naar de ontvanger.
 
 ## Security
@@ -31,7 +32,8 @@ Zie [security/SECURITY-SCAN.md](security/SECURITY-SCAN.md) voor de securityscan,
 [SBOM](security/sbom.cdx.json) en [CBOM](security/cbom.cdx.json) (CycloneDX 1.6). Opnieuw genereren: `npm run bom`.
 
 ## CSV-formaat
-`QR-code,Locatie,Datum,Tijd` – UTF-8 met BOM (Excel-vriendelijk), correcte escaping van komma's, quotes en regeleinden.
+`QR-code,Locatie,Datum,Tijd,Breedtegraad,Lengtegraad,Nauwkeurigheid (m)` – UTF-8 met BOM (Excel-vriendelijk), correcte escaping van komma's, quotes en regeleinden.
+GPS: WGS84 in decimale graden met 6 decimalen (punt als decimaalteken); de nauwkeurigste meting tussen de tik op *Scan* en *Toevoegen*. Zonder positie blijven de kolommen leeg.
 Bestandsnaam: `JJJJ-MM-DD_UU-mm_registratie.csv`, mailonderwerp: `JJJJ-MM-DD registratie`.
 
 ## Ontwikkeling

@@ -48,14 +48,57 @@ test('CSV opbouw: BOM, kop, CRLF, UTF-8', () => {
   const csv = L.buildCsv(recs);
   assert.ok(csv.startsWith('﻿'), 'begint met BOM');
   const lines = csv.slice(1).split('\r\n');
-  assert.equal(lines[0], 'QR-code,Locatie,Datum,Tijd');
-  assert.equal(lines[1], 'CODE-123456,Hoofdstraat 12 Assen,19-11-2026,14:35:07');
-  assert.equal(lines[2], '"X""Y","Café, ""De Brink""",19-11-2026,14:35:07');
+  assert.equal(lines[0], 'QR-code,Locatie,Datum,Tijd,Breedtegraad,Lengtegraad,Nauwkeurigheid (m)');
+  assert.equal(lines[1], 'CODE-123456,Hoofdstraat 12 Assen,19-11-2026,14:35:07,,,');
+  assert.equal(lines[2], '"X""Y","Café, ""De Brink""",19-11-2026,14:35:07,,,');
   assert.equal(lines[3], '');
 
   const bytes = Buffer.from(csv, 'utf8');
   assert.deepEqual([...bytes.subarray(0, 3)], [0xef, 0xbb, 0xbf], 'UTF-8 BOM bytes');
   assert.ok(bytes.includes(Buffer.from('Café', 'utf8')));
+});
+
+test('GPS in record en CSV', () => {
+  const r = L.createRecord('Q1', 'Assen', D, { lat: 52.99301234, lon: 6.56491234, acc: 4.4, ts: 1 });
+  assert.deepEqual(r.gps, { lat: 52.99301234, lon: 6.56491234, acc: 4.4, ts: 1 });
+  const lines = L.buildCsv([r]).slice(1).split('\r\n');
+  assert.equal(lines[1], 'Q1,Assen,19-11-2026,14:35:07,52.993012,6.564912,4');
+  // Zuid/west: negatieve getallen blijven gewone getallen (geen formule-apostrof)
+  const sw = L.createRecord('Q2', 'Londen-west', D, { lat: -33.8688197, lon: -0.1275862, acc: 12.6, ts: 1 });
+  assert.equal(L.buildCsv([sw]).slice(1).split('\r\n')[1], 'Q2,Londen-west,19-11-2026,14:35:07,-33.868820,-0.127586,13');
+  assert.equal(L.formatGps(r.gps), '52.993012, 6.564912 (±4 m)');
+  assert.equal(L.createRecord('Q3', 'x', D).gps, null);
+  assert.equal(L.csvField('-1.5'), '-1.5');
+  assert.equal(L.csvField('-1+1'), "'-1+1");
+});
+
+test('GPS: validatie en keuze van de beste meting', () => {
+  assert.equal(L.validGps({ lat: 91, lon: 0, acc: 1 }), false);
+  assert.equal(L.validGps({ lat: 0, lon: 181, acc: 1 }), false);
+  assert.equal(L.validGps({ lat: NaN, lon: 0, acc: 1 }), false);
+  assert.equal(L.validGps({ lat: 0, lon: 0, acc: -1 }), false);
+  assert.equal(L.validGps(null), false);
+  assert.equal(L.fixFromPosition({ coords: { latitude: 1, longitude: 2, accuracy: 3 }, timestamp: 9 }).ts, 9);
+  assert.equal(L.fixFromPosition({}), null);
+  const a = { lat: 1, lon: 1, acc: 30, ts: 100 }, b = { lat: 1, lon: 1, acc: 5, ts: 200 }, c = { lat: 1, lon: 1, acc: 50, ts: 300 };
+  assert.equal(L.betterFix(null, a, 0), a);
+  assert.equal(L.betterFix(a, b, 0), b, 'nauwkeuriger wint');
+  assert.equal(L.betterFix(b, c, 0), b, 'minder nauwkeurig verliest');
+  assert.equal(L.betterFix(null, a, 150), null, 'meting van vóór de scan telt niet');
+  const b2 = { lat: 2, lon: 2, acc: 5, ts: 400 };
+  assert.equal(L.betterFix(b, b2, 0), b2, 'gelijk → nieuwste');
+  assert.equal(L.betterFix(b, { lat: 999, lon: 0, acc: 1, ts: 500 }, 0), b, 'ongeldig genegeerd');
+});
+
+test('GPS overleeft opslaan/laden; ongeldige GPS wordt null', () => {
+  const s = L.sanitizeState({
+    records: [{ id: '1', qr: 'A', location: 'B', gps: { lat: 52, lon: 6, acc: 3, ts: 5 } }, { id: '2', qr: 'C', location: 'D', gps: { lat: 'x' } }],
+    pending: { qr: 'P', gps: { lat: 52.1, lon: 6.1, acc: 8, ts: 7 }, gpsSince: 6 }
+  });
+  assert.deepEqual(s.records[0].gps, { lat: 52, lon: 6, acc: 3, ts: 5 });
+  assert.equal(s.records[1].gps, null);
+  assert.equal(s.pending.gps.acc, 8);
+  assert.equal(s.pending.gpsSince, 6);
 });
 
 test('CSV als Blob (zoals in de browser) houdt BOM en UTF-8', async () => {

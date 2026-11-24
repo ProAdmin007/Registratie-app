@@ -1,10 +1,10 @@
 {
   "bomFormat": "CycloneDX",
   "specVersion": "1.6",
-  "serialNumber": "urn:uuid:aedd2761-89d1-45b1-b766-49930bcb2578",
+  "serialNumber": "urn:uuid:27247d03-da55-4984-9902-bc5d88aae7fd",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-11-23T13:02:31Z",
+    "timestamp": "2026-11-24T18:07:10Z",
     "tools": {
       "components": [
         {
@@ -34,7 +34,7 @@
       "properties": [
         {
           "name": "git:commit",
-          "value": "0a6e1e1cc2cb5a85c2e21051d9dd0f9d39f21a3e"
+          "value": "8ddc595cd40331bff34511b8ad55434516a2ba25"
         }
       ]
     },
@@ -368,7 +368,7 @@
         },
         {
           "name": "registratie:observed-at",
-          "value": "2026-11-23T13:02:31Z"
+          "value": "2026-11-24T18:07:10Z"
         },
         {
           "name": "registratie:observed-with",

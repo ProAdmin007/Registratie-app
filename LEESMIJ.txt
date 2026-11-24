@@ -55,5 +55,11 @@ geinstalleerd te worden en blijven alle gegevens op het toestel.
 
 CSV-FORMAAT
 -----------
-Kolommen: QR-code,Locatie,Datum,Tijd   (UTF-8 met BOM, komma-gescheiden)
+Kolommen: QR-code,Locatie,Datum,Tijd,Breedtegraad,Lengtegraad,Nauwkeurigheid (m)
+          (UTF-8 met BOM, komma-gescheiden)
+
+GPS: de app vraagt eenmalig toestemming voor Locatie. De nauwkeurigste
+positie tussen "Scan" en "Toevoegen" wordt opgeslagen (groen = binnen
+20 m). Zet Locatie aan op de telefoon. Lokaal geopend (index.html) geeft
+Chrome vaak geen locatie; via het https-adres werkt het wel.
 Bestandsnaam: JJJJ-MM-DD_UU-mm_registratie.csv

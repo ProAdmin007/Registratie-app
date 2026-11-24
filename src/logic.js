@@ -7,7 +7,8 @@
 
   var DELIMITER = ',';
   var BOM = '﻿';
-  var HEADERS = ['QR-code', 'Locatie', 'Datum', 'Tijd'];
+  var HEADERS = ['QR-code', 'Locatie', 'Datum', 'Tijd', 'Breedtegraad', 'Lengtegraad', 'Nauwkeurigheid (m)'];
+  var GPS_DECIMALS = 6; // 6 decimalen ≈ 0,1 m – nauwkeuriger dan elke telefoon-GPS
   var STORAGE_KEY = 'registratie:v1';
   var MAIL_BODY = 'Zie bijgevoegd het overzicht van de registraties.';
 
@@ -28,7 +29,8 @@
     // Beveiliging tegen CSV/formule-injectie (OWASP): een waarde die begint met = + - @ tab of CR
     // zou Excel als formule uitvoeren (bijv. een gemanipuleerde QR-code "=HYPERLINK(...)").
     // Een voorloop-apostrof laat Excel de waarde als tekst tonen.
-    if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+    // Uitzondering: een gewoon getal (bijv. een negatieve coördinaat -0.123456) is geen formule.
+    if (/^[=+\-@\t\r]/.test(s) && !/^-?\d+(\.\d+)?$/.test(s)) s = "'" + s;
     // Quote bij scheidingstekens (ook ; zodat wisselen van delimiter veilig blijft),
     // aanhalingstekens, regeleinden en spaties aan begin/eind.
     if (/[",;\r\n]/.test(s) || /^\s|\s$/.test(s)) {
@@ -40,9 +42,44 @@
   function buildCsv(records) {
     var lines = [HEADERS.map(csvField).join(DELIMITER)];
     (records || []).forEach(function (r) {
-      lines.push([r.qr, r.location, r.date, r.time].map(csvField).join(DELIMITER));
+      var g = gpsCells(r.gps);
+      lines.push([r.qr, r.location, r.date, r.time, g[0], g[1], g[2]].map(csvField).join(DELIMITER));
     });
     return BOM + lines.join('\r\n') + '\r\n';
+  }
+
+  /* ---------- GPS ---------- */
+  function validGps(g) {
+    return !!g && isFinite(g.lat) && isFinite(g.lon) && Math.abs(g.lat) <= 90 && Math.abs(g.lon) <= 180 &&
+      isFinite(g.acc) && g.acc >= 0;
+  }
+  // Breedtegraad, lengtegraad (punt als decimaalteken, WGS84) en nauwkeurigheid in hele meters.
+  function gpsCells(g) {
+    if (!validGps(g)) return ['', '', ''];
+    return [Number(g.lat).toFixed(GPS_DECIMALS), Number(g.lon).toFixed(GPS_DECIMALS), String(Math.round(g.acc))];
+  }
+  function formatGps(g) {
+    if (!validGps(g)) return '';
+    var c = gpsCells(g);
+    return c[0] + ', ' + c[1] + ' (±' + c[2] + ' m)';
+  }
+  function fixFromPosition(p) {
+    if (!p || !p.coords) return null;
+    var g = { lat: p.coords.latitude, lon: p.coords.longitude, acc: p.coords.accuracy, ts: p.timestamp || Date.now() };
+    return validGps(g) ? g : null;
+  }
+  // Kies de beste positie: alleen metingen vanaf `since` (de scan bij dit station),
+  // en daarvan de nauwkeurigste (bij gelijke nauwkeurigheid de nieuwste).
+  function betterFix(current, candidate, since) {
+    if (!validGps(candidate)) return current || null;
+    if (since && candidate.ts < since) return current || null;
+    if (!validGps(current)) return candidate;
+    if (candidate.acc < current.acc) return candidate;
+    if (candidate.acc === current.acc && candidate.ts > current.ts) return candidate;
+    return current;
+  }
+  function sanitizeGps(g) {
+    return validGps(g) ? { lat: Number(g.lat), lon: Number(g.lon), acc: Number(g.acc), ts: Number(g.ts) || 0 } : null;
   }
 
   /* ---------- Records ---------- */
@@ -59,7 +96,7 @@
   }
 
   var idCounter = 0;
-  function createRecord(qr, location, now) {
+  function createRecord(qr, location, now, gps) {
     now = now || new Date();
     idCounter = (idCounter + 1) % 1e6;
     return {
@@ -68,7 +105,8 @@
       location: String(location == null ? '' : location).trim(),
       date: formatDate(now),
       time: formatTime(now),
-      ts: now.getTime()
+      ts: now.getTime(),
+      gps: sanitizeGps(gps)
     };
   }
 
@@ -81,14 +119,16 @@
     if (Array.isArray(s.records)) {
       out.records = s.records.filter(function (r) {
         return r && typeof r.qr === 'string' && typeof r.location === 'string' && r.id;
-      });
+      }).map(function (r) { r.gps = sanitizeGps(r.gps); return r; });
     }
     if (s.pending && typeof s.pending.qr === 'string') {
       out.pending = {
         qr: s.pending.qr,
         location: typeof s.pending.location === 'string' ? s.pending.location : '',
         allowDuplicate: !!s.pending.allowDuplicate,
-        manual: !!s.pending.manual
+        manual: !!s.pending.manual,
+        gps: sanitizeGps(s.pending.gps),
+        gpsSince: Number(s.pending.gpsSince) || 0
       };
     }
     if (s.lastExport && typeof s.lastExport.csv === 'string' && typeof s.lastExport.filename === 'string') {
@@ -101,8 +141,8 @@
     var ok = false;
     try {
       if (storage) {
-        storage.setItem('__da_test__', '1');
-        storage.removeItem('__da_test__');
+        storage.setItem('__reg_test__', '1');
+        storage.removeItem('__reg_test__');
         ok = true;
       }
     } catch (e) { ok = false; }
@@ -169,7 +209,9 @@
     normalizeQr: normalizeQr, findDuplicate: findDuplicate, createRecord: createRecord,
     emptyState: emptyState, sanitizeState: sanitizeState, createStore: createStore,
     canShareFiles: canShareFiles, buildMailto: buildMailto, fallbackMailBody: fallbackMailBody,
-    decodeWithJsQR: decodeWithJsQR
+    decodeWithJsQR: decodeWithJsQR,
+    GPS_DECIMALS: GPS_DECIMALS, validGps: validGps, gpsCells: gpsCells, formatGps: formatGps,
+    fixFromPosition: fixFromPosition, betterFix: betterFix, sanitizeGps: sanitizeGps
   };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

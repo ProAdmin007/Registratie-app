@@ -67,13 +67,39 @@ async function launch(extraArgs = []) {
   });
 }
 
-async function newPage(browser, url, { init } = {}) {
+// Nep-GPS (headless Chrome heeft geen GPS). Standen via window.__gpsMode:
+//   'ok'   → posities die steeds nauwkeuriger worden (35 m → 12 m → 4 m)
+//   'deny' → toestemming geweigerd
+//   'none' → blijft zoeken (geen positie)
+function fakeGeolocation(mode) {
+  const watchers = new Map(); let id = 0;
+  window.__gpsMode = window.__gpsMode || mode || 'ok';
+  window.__gpsWatches = 0;
+  const pos = (lat, lon, acc) => ({ coords: { latitude: lat, longitude: lon, accuracy: acc }, timestamp: Date.now() });
+  window.__gpsEmit = (lat, lon, acc) => watchers.forEach(w => w.ok(pos(lat, lon, acc)));
+  const geo = {
+    getCurrentPosition() {},
+    watchPosition(ok, err) {
+      const n = ++id; watchers.set(n, { ok, err }); window.__gpsWatches++;
+      const m = window.__gpsMode;
+      if (m === 'deny') setTimeout(() => err({ code: 1, message: 'denied' }), 20);
+      if (m === 'ok') [[52.9931234, 6.5648765, 35], [52.9930001, 6.5649002, 12], [52.99301234, 6.56491234, 4]]
+        .forEach((p, i) => setTimeout(() => watchers.has(n) && ok(pos(...p)), 30 + i * 40));
+      return n;
+    },
+    clearWatch(n) { watchers.delete(n); }
+  };
+  Object.defineProperty(navigator, 'geolocation', { configurable: true, get: () => geo });
+}
+
+async function newPage(browser, url, { init, gps = 'ok' } = {}) {
   const page = await browser.newPage();
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
   // Elke Content-Security-Policy-overtreding laat de test falen.
   page.on('console', m => { if (/Content Security Policy/i.test(m.text())) errors.push('CSP: ' + m.text()); });
   await page.setViewport(MOBILE);
+  await page.evaluateOnNewDocument(fakeGeolocation, gps);
   if (init) await page.evaluateOnNewDocument(init);
   await page.goto(url, { waitUntil: 'load' });
   page.errors = errors;
@@ -173,8 +199,8 @@ test('lokaal geopend bestand (file://): volledige handmatige workflow', { skip }
     const bytes = fs.readFileSync(file);
     assert.deepEqual([...bytes.subarray(0, 3)], [0xef, 0xbb, 0xbf], 'UTF-8 BOM');
     const lines = bytes.toString('utf8').slice(1).split('\r\n');
-    assert.equal(lines[0], 'QR-code,Locatie,Datum,Tijd');
-    assert.match(lines[1], /^ABC123,Assen Noord,\d{2}-\d{2}-\d{4},\d{2}:\d{2}:\d{2}$/);
+    assert.equal(lines[0], 'QR-code,Locatie,Datum,Tijd,Breedtegraad,Lengtegraad,Nauwkeurigheid (m)');
+    assert.match(lines[1], /^ABC123,Assen Noord,\d{2}-\d{2}-\d{4},\d{2}:\d{2}:\d{2},52\.99\d{4},6\.56\d{4},\d+$/);
     assert.match(lines[2], /^DEF456,"Hoofdstraat 12, ""Assen""",/);
 
     // Wijziging na export → CSV moet opnieuw gemaakt worden
@@ -382,6 +408,91 @@ test('Lokaal bestand met camera aanwezig → Scan opent direct de camera-app', {
     const [chooser] = await Promise.all([page.waitForFileChooser({ timeout: 5000 }), page.click('#btnScan')]);
     await chooser.cancel();
     assert.equal(await page.evaluate(() => window.__gum), 0, 'geen live camera geprobeerd');
+    assert.deepEqual(page.errors, []);
+  } finally { await browser.close(); }
+});
+
+test('GPS: nauwkeurigste positie wordt opgeslagen, getoond en in de CSV gezet', { skip }, async () => {
+  const browser = await launch();
+  try {
+    const page = await newPage(browser, pathToFileURL(path.join(APP_DIR, 'index.html')).href, { init: () => { if (!sessionStorage.getItem('init')) { localStorage.clear(); sessionStorage.setItem('init', '1'); } } });
+    await page.click('#btnManual');
+    await page.waitForFunction(() => /±4 m/.test(document.getElementById('gpsText').textContent)); // 35 m → 12 m → 4 m
+    assert.equal(await page.$eval('#gpsBox', e => e.dataset.state), 'ok');
+    assert.equal(await text(page, '#gpsText'), '52.993012, 6.564912 (±4 m)');
+    // Een slechtere latere meting vervangt de betere niet
+    await page.evaluate(() => window.__gpsEmit(52.5, 6.5, 50));
+    assert.equal(await text(page, '#gpsText'), '52.993012, 6.564912 (±4 m)');
+    // Openstaande scan + positie overleeft herladen
+    await page.type('#qrInput', 'GPS-1');
+    await page.reload({ waitUntil: 'load' });
+    await page.waitForSelector('#entry:not([hidden])');
+    assert.equal(await text(page, '#gpsText'), '52.993012, 6.564912 (±4 m)');
+    await page.type('#locationInput', 'Assen');
+    await page.click('#btnAdd');
+    await page.waitForFunction(() => document.getElementById('count').textContent === '1');
+    assert.equal(await page.$eval('#list .rec-gps-text', e => e.textContent), '52.993012, 6.564912 (±4 m)');
+    const dl = fs.mkdtempSync(path.join(TMP, 'dl-'));
+    const cdp = await page.createCDPSession();
+    await cdp.send('Browser.setDownloadBehavior', { behavior: 'allow', downloadPath: dl });
+    await page.click('#btnExport');
+    const name = await (await page.waitForSelector('#exportName')).evaluate(e => e.textContent.trim());
+    const file = path.join(dl, name);
+    for (let i = 0; i < 50 && !fs.existsSync(file); i++) await new Promise(r => setTimeout(r, 100));
+    const lines = fs.readFileSync(file, 'utf8').slice(1).split('\r\n');
+    assert.match(lines[1], /^GPS-1,Assen,[\d-]+,[\d:]+,52\.993012,6\.564912,4$/);
+    assert.deepEqual(page.errors, []);
+  } finally { await browser.close(); }
+});
+
+test('GPS geweigerd: melding, toevoegen zonder vraag, lege coördinaten', { skip }, async () => {
+  const browser = await launch();
+  try {
+    const page = await newPage(browser, pathToFileURL(path.join(APP_DIR, 'index.html')).href, { gps: 'deny', init: () => { if (!sessionStorage.getItem('init')) { localStorage.clear(); sessionStorage.setItem('init', '1'); } } });
+    await page.click('#btnManual');
+    await page.waitForFunction(() => document.getElementById('gpsBox').dataset.state === 'error');
+    assert.match(await text(page, '#gpsText'), /geweigerd/);
+    await page.type('#qrInput', 'G2'); await page.type('#locationInput', 'Beilen');
+    await page.click('#btnAdd');
+    await page.waitForFunction(() => document.getElementById('count').textContent === '1');
+    assert.equal(await page.$eval('#list .rec-gps-text', e => e.textContent), 'Geen GPS-positie');
+    const csv = await page.evaluate(() => window.RegLogic.buildCsv(JSON.parse(localStorage.getItem('registratie:v1')).records));
+    assert.match(csv, /\r\nG2,Beilen,[\d-]+,[\d:]+,,,\r\n$/);
+    assert.deepEqual(page.errors, []);
+  } finally { await browser.close(); }
+});
+
+test('GPS zoekt nog: waarschuwing; "Wachten" en daarna met positie, of bewust zonder', { skip }, async () => {
+  const browser = await launch();
+  try {
+    const page = await newPage(browser, pathToFileURL(path.join(APP_DIR, 'index.html')).href, { gps: 'none', init: () => { if (!sessionStorage.getItem('init')) { localStorage.clear(); sessionStorage.setItem('init', '1'); } } });
+    await page.click('#btnManual');
+    assert.equal(await page.$eval('#gpsBox', e => e.dataset.state), 'searching');
+    await page.type('#qrInput', 'G3'); await page.type('#locationInput', 'Hoogeveen');
+    await page.click('#btnAdd');
+    await page.waitForFunction(() => document.getElementById('dlg').open);
+    assert.match(await text(page, '#dlgTitle'), /Nog geen GPS-positie/);
+    await dialogClick(page, 'cancel'); // Wachten
+    await new Promise(r => setTimeout(r, 200));
+    assert.equal(await count(page), 0, 'nog niet toegevoegd');
+    await page.evaluate(() => window.__gpsEmit(52.7255, 6.4757, 25));
+    await page.waitForFunction(() => document.getElementById('gpsBox').dataset.state === 'weak');
+    await page.click('#btnAdd');
+    await page.waitForFunction(() => document.getElementById('count').textContent === '1');
+    assert.equal(await page.$eval('#list .rec-gps-text', e => e.textContent), '52.725500, 6.475700 (±25 m)');
+    // Volgende scan direct erna: een positie van ≤ 5 s oud telt mee (zelfde plek)
+    await page.click('#btnManual');
+    assert.equal(await page.$eval('#gpsBox', e => e.dataset.state), 'weak');
+    await page.click('#btnCancelEntry');
+    // Na herladen is er geen recente positie → zoeken; bewust zonder GPS toevoegen
+    await page.reload({ waitUntil: 'load' });
+    await page.click('#btnManual');
+    assert.equal(await page.$eval('#gpsBox', e => e.dataset.state), 'searching');
+    await page.type('#qrInput', 'G4'); await page.type('#locationInput', 'Zonder');
+    await page.click('#btnAdd');
+    await dialogClick(page, 'ok'); // Zonder GPS toevoegen
+    await page.waitForFunction(() => document.getElementById('count').textContent === '2');
+    assert.equal(await page.$$eval('#list .rec-gps-text', e => e[1].textContent), 'Geen GPS-positie');
     assert.deepEqual(page.errors, []);
   } finally { await browser.close(); }
 });

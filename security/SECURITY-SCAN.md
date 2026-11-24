@@ -44,6 +44,7 @@
 
 | Onderwerp | Toelichting | Aanbeveling |
 |---|---|---|
+| Locatiegegevens (AVG) | Sinds versie met GPS bevat elke registratie de coördinaten van de monteur op dat moment. De app meet alleen tussen *Scan* en *Toevoegen* (niet op de achtergrond; uit na 3 min zonder scan) en verstuurt niets zelf. | Informeer monteurs dat de positie per registratie wordt vastgelegd; bewaar de CSV's volgens het eigen bewaarbeleid. |
 | Gegevens in rust | Registraties staan onversleuteld in `localStorage` van de browser. Beschermd door de schermvergrendeling/versleuteling van Android. | Telefoons met pincode/biometrie; na versturen **Nieuwe scanronde** gebruiken. |
 | `style-src 'unsafe-inline'` | Nodig voor de ene-bestand-opzet. Stijl-injectie kan geen scripts uitvoeren of gegevens versturen (CSP blokkeert dat). | Acceptabel. |
 | Clickjacking | GitHub Pages ondersteunt geen `frame-ancestors`-header; via `<meta>` kan dat niet. De app heeft geen account of gevoelige acties. | Acceptabel. |

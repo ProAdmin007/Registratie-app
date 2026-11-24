@@ -173,6 +173,29 @@ input[type=text]:focus { outline: none; background: #fff; border-color: var(--pr
   border: 2px dashed #9dbbef;
 }
 
+/* ---------- GPS ---------- */
+.gps-box {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 14px; margin: -2px 0 14px; border-radius: 14px;
+  border: 1px solid var(--line); background: #f8fafd; color: var(--muted);
+}
+.gps-box .ic { width: 26px; height: 26px; }
+.gps-box > div { display: flex; flex-direction: column; min-width: 0; }
+.gps-label { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+#gpsText { font-family: var(--mono); font-weight: 700; color: var(--text); word-break: break-word; }
+.gps-box[data-state=ok] { background: var(--success-soft); border-color: #b6e2c5; }
+.gps-box[data-state=ok] .ic { color: var(--success); }
+.gps-box[data-state=weak], .gps-box[data-state=searching] { background: var(--warn-soft); border-color: #f0d48a; }
+.gps-box[data-state=weak] .ic, .gps-box[data-state=searching] .ic { color: var(--warn); }
+.gps-box[data-state=searching] .ic { animation: gps-pulse 1.2s ease-in-out infinite; }
+.gps-box[data-state=searching] #gpsText, .gps-box[data-state=error] #gpsText { font-family: inherit; font-weight: 600; }
+.gps-box[data-state=error] { background: var(--danger-soft); border-color: #f1c4c1; }
+.gps-box[data-state=error] .ic { color: var(--danger); }
+@keyframes gps-pulse { 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { .gps-box .ic { animation: none !important; } }
+.rec-gps-text { font-family: var(--mono); font-size: .88rem; }
+.rec-gps.missing { color: var(--warn); }
+
 /* ---------- Lijst ---------- */
 .list-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
 .list-head h2 { margin: 0; font-size: 1.15rem; }

@@ -10,7 +10,7 @@
     banner: $('banner'), btnScan: $('btnScan'), btnManual: $('btnManual'), btnPhoto: $('btnPhoto'),
     photoInput: $('photoInput'), scanner: $('scanner'), video: $('video'), btnStopScan: $('btnStopScan'),
     entry: $('entry'), qrValue: $('qrValue'), qrInput: $('qrInput'), locationInput: $('locationInput'),
-    btnAdd: $('btnAdd'), btnCancelEntry: $('btnCancelEntry'),
+    btnAdd: $('btnAdd'), btnCancelEntry: $('btnCancelEntry'), gpsBox: $('gpsBox'), gpsText: $('gpsText'),
     count: $('count'), emptyText: $('emptyText'), list: $('list'),
     btnExport: $('btnExport'), exportResult: $('exportResult'), exportName: $('exportName'),
     btnShare: $('btnShare'), shareHint: $('shareHint'), btnDownloadAgain: $('btnDownloadAgain'),
@@ -110,6 +110,7 @@
     if (!hasLiveCamera || cameraBlocked) items.push('Live camera niet beschikbaar: "Scan QR-code" opent de camera-app om een foto van de QR-code te maken.');
     if (!canShare) items.push('Bestanden delen wordt niet ondersteund: bij e-mailen moet je de CSV uit Downloads zelf als bijlage toevoegen (de gegevens staan ook in de mailtekst).');
     if (typeof window.jsQR !== 'function' && !detector) items.push('QR-herkenning is niet beschikbaar in deze browser. Gebruik "handmatig invoeren".');
+    if (!geo.supported) items.push('GPS niet beschikbaar: de kolommen met coördinaten blijven leeg.');
     if (!items.length) { el.banner.hidden = true; return; }
     el.banner.textContent = '';
     el.banner.appendChild(icon('info'));
@@ -130,6 +131,7 @@
 
   function startScan() {
     if (scanning) return;
+    gpsBegin(); // positie meten vanaf de tik op Scan
     if (!hasLiveCamera || cameraBlocked) { openPhotoCapture(); return; }
     el.btnPhoto.hidden = true;
     el.btnScan.disabled = true;
@@ -276,11 +278,107 @@
     showEntry(qr, { allowDuplicate: false });
   }
 
+  /* ================= GPS ================= */
+  // De positie wordt gemeten vanaf het moment dat de monteur op "Scan" tikt (dan staat hij bij het station)
+  // tot "Toevoegen"; de nauwkeurigste meting in dat venster wordt opgeslagen.
+  var GPS_GOOD_M = 20;              // groen bij ≤ 20 m nauwkeurigheid
+  var GPS_IDLE_MS = 3 * 60 * 1000;  // GPS uit na 3 minuten zonder scan (batterij)
+  var geo = {
+    supported: !!(navigator.geolocation && typeof navigator.geolocation.watchPosition === 'function'),
+    watchId: null, since: 0, best: null, last: null, error: null, denied: false, idleTimer: null
+  };
+
+  function gpsBegin() {
+    // Nieuw meetvenster voor het volgende station
+    geo.since = Date.now();
+    // Een zeer recente meting (≤ 5 s oud) telt meteen mee; anders begint het zoeken opnieuw.
+    geo.best = L.betterFix(null, geo.last, geo.since - 5000);
+    // Meting opnieuw starten: een stilstaande telefoon stuurt anders niet altijd uit zichzelf een update.
+    gpsStop();
+    gpsStart();
+    gpsIdleLater(); // stopt vanzelf als er geen scan volgt
+  }
+  function gpsStart() {
+    clearTimeout(geo.idleTimer);
+    if (!geo.supported || geo.denied || geo.watchId != null) return;
+    try {
+      geo.watchId = navigator.geolocation.watchPosition(onGpsPos, onGpsErr,
+        { enableHighAccuracy: true, maximumAge: 0, timeout: 60000 });
+    } catch (e) {
+      geo.error = 'GPS kon niet worden gestart.';
+      renderGps();
+    }
+  }
+  function gpsStop() {
+    if (geo.watchId == null) return;
+    try { navigator.geolocation.clearWatch(geo.watchId); } catch (e) { /* negeer */ }
+    geo.watchId = null;
+  }
+  function gpsIdleLater() {
+    clearTimeout(geo.idleTimer);
+    geo.idleTimer = setTimeout(function () { if (!state.pending) gpsStop(); }, GPS_IDLE_MS);
+  }
+  function onGpsPos(pos) {
+    var fix = L.fixFromPosition(pos);
+    if (!fix) return;
+    geo.error = null;
+    geo.last = fix;
+    // 5 s marge: een meting van vlak vóór de tik op "Scan" is ook bij dit station.
+    geo.best = L.betterFix(geo.best, fix, geo.since - 5000);
+    var p = state.pending;
+    if (p && geo.best !== p.gps) { p.gps = geo.best; persist(); }
+    renderGps();
+  }
+  function onGpsErr(err) {
+    var code = err && err.code;
+    if (code === 1) {
+      geo.denied = true;
+      geo.error = 'Locatietoegang geweigerd – zonder coördinaten. Sta locatie toe via het slotje in de adresbalk.';
+      gpsStop();
+    } else if (code === 2) {
+      geo.error = 'Geen positie beschikbaar. Staat Locatie aan op de telefoon?';
+    } else {
+      geo.error = null; // time-out: blijft zoeken
+    }
+    renderGps();
+  }
+  function renderGps() {
+    var p = state.pending;
+    if (!p) return;
+    var st, txt;
+    if (p.gps) {
+      st = p.gps.acc <= GPS_GOOD_M ? 'ok' : 'weak';
+      txt = L.formatGps(p.gps) + (st === 'weak' ? ' – even stilstaan maakt hem nauwkeuriger' : '');
+    } else if (!geo.supported) {
+      st = 'error'; txt = 'GPS niet beschikbaar in deze browser.';
+    } else if (geo.error) {
+      st = 'error'; txt = geo.error;
+    } else {
+      st = 'searching'; txt = 'Zoeken…';
+    }
+    el.gpsBox.dataset.state = st;
+    el.gpsText.textContent = txt;
+  }
+  function askNoGps() {
+    // Geen stille registraties zonder coördinaten terwijl de GPS nog zoekt.
+    if (state.pending.gps || !geo.supported || geo.denied) return Promise.resolve(true);
+    return ask({
+      title: 'Nog geen GPS-positie',
+      body: geo.error || 'De telefoon zoekt nog naar de positie. Meestal duurt dat enkele seconden (buiten, vrij zicht op de lucht).',
+      ok: 'Zonder GPS toevoegen', cancel: 'Wachten'
+    });
+  }
+
   /* ================= Invoer ================= */
   function showEntry(qr, opts) {
     opts = opts || {};
-    state.pending = { qr: qr || '', location: opts.location || '', allowDuplicate: !!opts.allowDuplicate, manual: !!opts.manual };
+    if (!geo.since) gpsBegin();
+    state.pending = {
+      qr: qr || '', location: opts.location || '', allowDuplicate: !!opts.allowDuplicate, manual: !!opts.manual,
+      gps: geo.best, gpsSince: geo.since
+    };
     persist();
+    gpsStart();
     renderEntry(true);
   }
 
@@ -293,6 +391,7 @@
     el.qrValue.textContent = p.qr;
     el.qrInput.value = p.qr;
     el.locationInput.value = p.location || '';
+    renderGps();
     updateAddButton();
     if (focus) {
       el.entry.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -341,9 +440,17 @@
     var existing = L.findDuplicate(state.records, qr);
     var go = (existing && !p.allowDuplicate) ? confirmDuplicate(qr, existing) : Promise.resolve(true);
     go.then(function (yes) {
-      if (!yes) { setStatus('Niet toegevoegd (dubbele QR-code).', 'warn'); return; }
-      state.records.push(L.createRecord(qr, location));
+      if (!yes) { setStatus('Niet toegevoegd (dubbele QR-code).', 'warn'); return false; }
+      return askNoGps().then(function (ok) {
+        if (!ok) { setStatus('GPS zoekt verder… tik daarna op Toevoegen.', 'warn'); }
+        return ok;
+      });
+    }).then(function (yes) {
+      if (!yes || state.pending !== p) return;
+      state.records.push(L.createRecord(qr, location, undefined, p.gps));
       state.pending = null;
+      geo.since = 0; // volgende scan = nieuw meetvenster
+      gpsIdleLater();
       state.lastExport = null; // lijst gewijzigd → CSV opnieuw maken
       persist();
       el.locationInput.blur();
@@ -356,7 +463,7 @@
 
   el.btnAdd.addEventListener('click', addRecord);
   el.btnCancelEntry.addEventListener('click', function () {
-    state.pending = null; persist(); renderEntry(false);
+    state.pending = null; geo.since = 0; persist(); renderEntry(false); gpsIdleLater();
   });
 
   /* ================= Overzicht ================= */
@@ -422,6 +529,7 @@
         body.appendChild(mk('div', 'rec-qr', r.qr));
         body.appendChild(meta('rec-loc', 'pin', 'rec-loc-text', r.location));
         body.appendChild(meta('rec-time', 'clock', null, r.date + ' · ' + r.time));
+        body.appendChild(meta('rec-gps' + (r.gps ? '' : ' missing'), 'gps', 'rec-gps-text', r.gps ? L.formatGps(r.gps) : 'Geen GPS-positie'));
         var a = mk('div', 'rec-actions');
         a.appendChild(iconButton('btn-outline', 'edit', 'Bewerken', 'edit'));
         a.appendChild(iconButton('btn-danger-ghost', 'trash', 'Verwijderen', 'delete'));
@@ -580,12 +688,13 @@
 
   /* ================= Knoppen & levenscyclus ================= */
   el.btnScan.addEventListener('click', startScan);
-  el.btnPhoto.addEventListener('click', openPhotoCapture);
+  el.btnPhoto.addEventListener('click', function () { gpsBegin(); openPhotoCapture(); });
   el.btnStopScan.addEventListener('click', stopScan);
-  el.btnManual.addEventListener('click', function () { stopScan(); showEntry('', { manual: true }); });
+  el.btnManual.addEventListener('click', function () { stopScan(); gpsBegin(); showEntry('', { manual: true }); });
 
   document.addEventListener('visibilitychange', function () {
     if (document.hidden && scanning) stopScan(); // camera vrijgeven op de achtergrond
+    if (document.hidden) gpsStop(); else if (state.pending) gpsStart(); // GPS niet op de achtergrond
   });
   window.addEventListener('beforeunload', function (e) {
     if (!store.persistent && state.records.length) { e.preventDefault(); e.returnValue = ''; }
@@ -603,5 +712,11 @@
 
   detectorReady.then(renderBanner);
   render();
-  if (state.pending) renderEntry(true);
+  if (state.pending) {
+    // Na herladen: meetvenster en beste positie van de openstaande scan herstellen.
+    geo.since = state.pending.gpsSince || Date.now();
+    geo.best = state.pending.gps;
+    gpsStart();
+    renderEntry(true);
+  }
 })();
